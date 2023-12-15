@@ -17,49 +17,50 @@
 package types
 
 import (
-	"github.com/rulego/rulego/pool"
 	"math"
 	"sort"
 	"time"
+
+	"github.com/rulego/rulego/pool"
 )
 
 // Config 规则引擎配置
 type Config struct {
-	//OnDebug 节点调试信息回调函数，只有节点debugMode=true才会调用
-	//ruleChainId 规则链ID
-	//flowType IN/OUT,流入(IN)该组件或者流出(OUT)该组件事件类型
-	//nodeId 节点ID
-	//msg 当前msg
-	//relationType 如果flowType=IN，则代表上一个节点和该节点的连接关系，例如(True/False);如果flowType=OUT，则代表该节点和下一个节点的连接关系，例如(True/False)
-	//err 错误信息
+	// OnDebug 节点调试信息回调函数，只有节点debugMode=true才会调用
+	// ruleChainId 规则链ID
+	// flowType IN/OUT,流入(IN)该组件或者流出(OUT)该组件事件类型
+	// nodeId 节点ID
+	// msg 当前msg
+	// relationType 如果flowType=IN，则代表上一个节点和该节点的连接关系，例如(True/False);如果flowType=OUT，则代表该节点和下一个节点的连接关系，例如(True/False)
+	// err 错误信息
 	OnDebug func(ruleChainId string, flowType string, nodeId string, msg RuleMsg, relationType string, err error)
-	//Deprecated
-	//使用types.WithEndFunc方式代替
-	//OnEnd 规则链执行完成回调函数，如果有多个结束点，则执行多次
+	// Deprecated
+	// 使用types.WithEndFunc方式代替
+	// OnEnd 规则链执行完成回调函数，如果有多个结束点，则执行多次
 	OnEnd func(msg RuleMsg, err error)
-	//ScriptMaxExecutionTime 脚本执行超时时间，默认2000毫秒
+	// ScriptMaxExecutionTime 脚本执行超时时间，默认2000毫秒
 	ScriptMaxExecutionTime time.Duration
-	//Pool 协程池接口
-	//如果不配置，则使用 go func 方式
-	//默认使用`pool.WorkerPool`。兼容ants协程池，可以使用ants协程池实现
-	//例如：
+	// Pool 协程池接口
+	// 如果不配置，则使用 go func 方式
+	// 默认使用`pool.WorkerPool`。兼容ants协程池，可以使用ants协程池实现
+	// 例如：
 	//	pool, _ := ants.NewPool(math.MaxInt32)
 	//	config := rulego.NewConfig(types.WithPool(pool))
 	Pool Pool
-	//ComponentsRegistry 组件库
-	//默认使用`rulego.Registry`
+	// ComponentsRegistry 组件库
+	// 默认使用`rulego.Registry`
 	ComponentsRegistry ComponentRegistry
-	//规则链解析接口，默认使用：`rulego.JsonParser`
+	// 规则链解析接口，默认使用：`rulego.JsonParser`
 	Parser Parser
-	//Logger 日志记录接口，默认使用：`DefaultLogger()`
+	// Logger 日志记录接口，默认使用：`DefaultLogger()`
 	Logger Logger
-	//Properties 全局属性，key-value形式
-	//规则链节点配置可以通过${global.propertyKey}方式替换Properties值
-	//节点初始化时候替换，只替换一次
+	// Properties 全局属性，key-value形式
+	// 规则链节点配置可以通过${global.propertyKey}方式替换Properties值
+	// 节点初始化时候替换，只替换一次
 	Properties Metadata
-	//Udf 注册自定义Golang函数和原生脚本，js等脚本引擎运行时可以调用
+	// Udf 注册自定义Golang函数和原生脚本，js等脚本引擎运行时可以调用
 	Udf map[string]interface{}
-	//Aspects AOP切面列表
+	// Aspects AOP切面列表
 	Aspects []Aspect
 }
 
@@ -74,7 +75,7 @@ func (c *Config) RegisterUdf(name string, value interface{}) {
 // GetNodeAspects 获取节点执行类型增强点切面列表
 func (c *Config) GetNodeAspects() ([]AroundAspect, []BeforeAspect, []AfterAspect) {
 
-	//从小到大排序
+	// 从小到大排序
 	sort.Slice(c.Aspects, func(i, j int) bool {
 		return c.Aspects[i].Order() < c.Aspects[j].Order()
 	})
@@ -101,7 +102,7 @@ func (c *Config) GetNodeAspects() ([]AroundAspect, []BeforeAspect, []AfterAspect
 // GetChainAspects 获取规则链执行类型增强点切面列表
 func (c *Config) GetChainAspects() ([]StartAspect, []EndAspect, []CompletedAspect) {
 
-	//从小到大排序
+	// 从小到大排序
 	sort.Slice(c.Aspects, func(i, j int) bool {
 		return c.Aspects[i].Order() < c.Aspects[j].Order()
 	})
@@ -125,16 +126,12 @@ func (c *Config) GetChainAspects() ([]StartAspect, []EndAspect, []CompletedAspec
 }
 
 // GetEngineAspects 获取规则引擎类型增强点切面列表
-func (c *Config) GetEngineAspects() ([]OnCreatedAspect, []OnReloadAspect, []OnDestroyAspect) {
+func (c *Config) GetEngineAspects() (createdAspects []OnCreatedAspect, reloadAspects []OnReloadAspect, destroyAspects []OnDestroyAspect) {
 
-	//从小到大排序
+	// 从小到大排序
 	sort.Slice(c.Aspects, func(i, j int) bool {
 		return c.Aspects[i].Order() < c.Aspects[j].Order()
 	})
-
-	var createdAspects []OnCreatedAspect
-	var reloadAspects []OnReloadAspect
-	var destroyAspects []OnDestroyAspect
 
 	for _, item := range c.Aspects {
 		if a, ok := item.(OnCreatedAspect); ok {
@@ -148,7 +145,7 @@ func (c *Config) GetEngineAspects() ([]OnCreatedAspect, []OnReloadAspect, []OnDe
 		}
 	}
 
-	return createdAspects, reloadAspects, destroyAspects
+	return
 }
 
 // Option is a function type that modifies the Config.

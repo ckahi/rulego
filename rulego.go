@@ -106,10 +106,11 @@
 package rulego
 
 import (
-	"github.com/rulego/rulego/api/types"
-	"github.com/rulego/rulego/utils/fs"
 	"strings"
 	"sync"
+
+	"github.com/rulego/rulego/api/types"
+	"github.com/rulego/rulego/utils/fs"
 )
 
 var DefaultRuleGo = &RuleGo{}
@@ -137,10 +138,11 @@ func (g *RuleGo) Load(folderPath string, opts ...RuleEngineOption) error {
 	}
 	for _, path := range paths {
 		b := fs.LoadFile(path)
-		if b != nil {
-			if _, err = g.New("", b, opts...); err != nil {
-				return err
-			}
+		if len(b) == 0 {
+			continue
+		}
+		if _, err = g.New("", b, opts...); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -149,21 +151,21 @@ func (g *RuleGo) Load(folderPath string, opts ...RuleEngineOption) error {
 // New 创建一个新的RuleEngine并将其存储在RuleGo规则链池中
 // 如果指定id="",则使用规则链文件的ruleChain.id
 func (g *RuleGo) New(id string, rootRuleChainSrc []byte, opts ...RuleEngineOption) (*RuleEngine, error) {
+
 	if v, ok := g.ruleEngines.Load(id); ok {
 		return v.(*RuleEngine), nil
-	} else {
-		if ruleEngine, err := newRuleEngine(id, rootRuleChainSrc, opts...); err != nil {
-			return nil, err
-		} else {
-			if ruleEngine.Id != "" {
-				// Store the new RuleEngine in the ruleEngines map with the Id as the key.
-				g.ruleEngines.Store(ruleEngine.Id, ruleEngine)
-			}
-			ruleEngine.RuleChainPool = g
-			return ruleEngine, err
-		}
-
 	}
+	
+	ruleEngine, err := newRuleEngine(id, rootRuleChainSrc, opts...)
+	if err != nil {
+		return nil, err
+	}
+	if ruleEngine.Id != "" {
+		// Store the new RuleEngine in the ruleEngines map with the Id as the key.
+		g.ruleEngines.Store(ruleEngine.Id, ruleEngine)
+	}
+	ruleEngine.RuleChainPool = g
+	return ruleEngine, err
 }
 
 // Get 获取指定ID规则引擎实例
@@ -171,9 +173,9 @@ func (g *RuleGo) Get(id string) (*RuleEngine, bool) {
 	v, ok := g.ruleEngines.Load(id)
 	if ok {
 		return v.(*RuleEngine), ok
-	} else {
-		return nil, false
 	}
+
+	return nil, false
 }
 
 // Del 删除指定ID规则引擎实例

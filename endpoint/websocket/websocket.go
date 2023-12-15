@@ -19,17 +19,18 @@ package websocket
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/textproto"
+	"strconv"
+
 	"github.com/gorilla/websocket"
 	"github.com/julienschmidt/httprouter"
 	"github.com/rulego/rulego/api/types"
 	"github.com/rulego/rulego/endpoint"
 	"github.com/rulego/rulego/utils/maps"
 	"github.com/rulego/rulego/utils/str"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"net/textproto"
-	"strconv"
 )
 
 // Type 组件类型
@@ -45,11 +46,11 @@ func init() {
 
 // RequestMessage websocket请求消息
 type RequestMessage struct {
-	//ws消息类型 TextMessage=1/BinaryMessage=2
+	// ws消息类型 TextMessage=1/BinaryMessage=2
 	messageType int
 	request     *http.Request
 	body        []byte
-	//路径参数
+	// 路径参数
 	Params httprouter.Params
 	msg    *types.RuleMsg
 	err    error
@@ -67,6 +68,7 @@ func (r *RequestMessage) Body() []byte {
 	}
 	return r.body
 }
+
 func (r *RequestMessage) Headers() textproto.MIMEHeader {
 	return textproto.MIMEHeader(r.request.Header)
 }
@@ -84,7 +86,7 @@ func (r *RequestMessage) SetMsg(msg *types.RuleMsg) {
 }
 func (r *RequestMessage) GetMsg() *types.RuleMsg {
 	if r.msg == nil {
-		//默认指定是JSON格式，如果不是该类型，请在process函数中修改
+		// 默认指定是JSON格式，如果不是该类型，请在process函数中修改
 		dataType := types.JSON
 		if r.messageType == websocket.BinaryMessage {
 			dataType = types.BINARY
@@ -117,7 +119,7 @@ func (r *RequestMessage) Request() *http.Request {
 
 // ResponseMessage websocket响应消息
 type ResponseMessage struct {
-	//ws消息类型 TextMessage/BinaryMessage
+	// ws消息类型 TextMessage/BinaryMessage
 	messageType int
 	log         func(format string, v ...interface{})
 	request     *http.Request
@@ -179,10 +181,10 @@ type Config struct {
 // Websocket 接收端端点
 type Websocket struct {
 	endpoint.BaseEndpoint
-	//配置
+	// 配置
 	Config     Config
 	RuleConfig types.Config
-	//http路由器
+	// http路由器
 	router   *httprouter.Router
 	server   *http.Server
 	upgrader websocket.Upgrader
@@ -264,12 +266,12 @@ func (ws *Websocket) addRouter(routers ...*endpoint.Router) *Websocket {
 	for _, item := range routers {
 		key := ws.routerKey("GET", item.FromToString())
 		if old, ok := ws.RouterStorage[key]; ok {
-			//已经存储则，把路由设置可用
+			// 已经存储则，把路由设置可用
 			old.Disable(false)
 		} else {
-			//存储路由
+			// 存储路由
 			ws.RouterStorage[key] = item
-			//添加到http路由器
+			// 添加到http路由器
 			ws.router.Handle("GET", item.FromToString(), ws.handler(item))
 		}
 	}
@@ -294,7 +296,7 @@ func (ws *Websocket) handler(router *endpoint.Router) httprouter.Handle {
 
 		defer func() {
 			_ = c.Close()
-			//捕捉异常
+			// 捕捉异常
 			if e := recover(); e != nil {
 				ws.Printf("ws handler err :%v", e)
 			}
@@ -332,14 +334,14 @@ func (ws *Websocket) handler(router *endpoint.Router) httprouter.Handle {
 				}}
 
 			msg := exchange.In.GetMsg()
-			//把路径参数放到msg元数据中
+			// 把路径参数放到msg元数据中
 			for _, param := range params {
 				msg.Metadata.PutValue(param.Key, param.Value)
 			}
 
 			msg.Metadata.PutValue("messageType", strconv.Itoa(mt))
 
-			//把url?参数放到msg元数据中
+			// 把url?参数放到msg元数据中
 			for key, value := range r.URL.Query() {
 				if len(value) > 1 {
 					msg.Metadata.PutValue(key, str.ToString(value))

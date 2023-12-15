@@ -18,6 +18,7 @@ package rulego
 
 import (
 	"errors"
+
 	"github.com/rulego/rulego/api/types"
 	"github.com/rulego/rulego/utils/str"
 )
@@ -28,11 +29,11 @@ const (
 
 // RuleNodeCtx 节点组件实例定义
 type RuleNodeCtx struct {
-	//组件实例
+	// 组件实例
 	types.Node
-	//组件配置
+	// 组件配置
 	SelfDefinition *RuleNode
-	//规则引擎配置
+	// 规则引擎配置
 	Config types.Config
 }
 
@@ -41,20 +42,20 @@ func InitRuleNodeCtx(config types.Config, selfDefinition *RuleNode) (*RuleNodeCt
 	node, err := config.ComponentsRegistry.NewNode(selfDefinition.Type)
 	if err != nil {
 		return &RuleNodeCtx{}, err
-	} else {
-		if selfDefinition.Configuration == nil {
-			selfDefinition.Configuration = make(types.Configuration)
-		}
-		if err = node.Init(config, processGlobalPlaceholders(config, selfDefinition.Configuration)); err != nil {
-			return &RuleNodeCtx{}, err
-		} else {
-			return &RuleNodeCtx{
-				Node:           node,
-				SelfDefinition: selfDefinition,
-				Config:         config,
-			}, nil
-		}
 	}
+
+	if selfDefinition.Configuration == nil {
+		selfDefinition.Configuration = make(types.Configuration)
+	}
+	if err = node.Init(config, processGlobalPlaceholders(config, selfDefinition.Configuration)); err != nil {
+		return &RuleNodeCtx{}, err
+	}
+
+	return &RuleNodeCtx{
+		Node:           node,
+		SelfDefinition: selfDefinition,
+		Config:         config,
+	}, nil
 
 }
 
@@ -68,9 +69,9 @@ func (rn *RuleNodeCtx) GetNodeId() types.RuleNodeId {
 
 func (rn *RuleNodeCtx) ReloadSelf(def []byte) error {
 	if ruleNodeCtx, err := rn.Config.Parser.DecodeRuleNode(rn.Config, def); err == nil {
-		//先销毁
+		// 先销毁
 		rn.Destroy()
-		//重新加载
+		// 重新加载
 		rn.Copy(ruleNodeCtx.(*RuleNodeCtx))
 		return nil
 	} else {

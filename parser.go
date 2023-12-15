@@ -26,35 +26,32 @@ type JsonParser struct {
 }
 
 func (p *JsonParser) DecodeRuleChain(config types.Config, dsl []byte) (types.Node, error) {
-	if rootRuleChainDef, err := ParserRuleChain(dsl); err == nil {
-		//初始化
-		return InitRuleChainCtx(config, &rootRuleChainDef)
-	} else {
+	rootRuleChainDef, err := ParserRuleChain(dsl)
+	if err != nil {
 		return nil, err
 	}
+	return InitRuleChainCtx(config, &rootRuleChainDef)
 }
 func (p *JsonParser) DecodeRuleNode(config types.Config, dsl []byte) (types.Node, error) {
-	if node, err := ParserRuleNode(dsl); err == nil {
-		return InitRuleNodeCtx(config, &node)
-	} else {
+	node, err := ParserRuleNode(dsl)
+	if err != nil {
 		return nil, err
 	}
+	return InitRuleNodeCtx(config, &node)
 }
 func (p *JsonParser) EncodeRuleChain(def interface{}) ([]byte, error) {
-	//缩进符为两个空格
+	// 缩进符为两个空格
 	v, err := json.Marshal(def)
 	if err != nil {
 		return nil, err
-	} else {
-		return json.Format(v)
 	}
+	return json.Format(v)
 }
 func (p *JsonParser) EncodeRuleNode(def interface{}) ([]byte, error) {
-	//缩进符为两个空格
+	// 缩进符为两个空格
 	v, err := json.Marshal(def)
 	if err != nil {
 		return nil, err
-	} else {
-		return json.Format(v)
 	}
+	return json.Format(v)
 }

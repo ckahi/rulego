@@ -19,6 +19,9 @@ package rulego
 import (
 	"errors"
 	"fmt"
+	"plugin"
+	"sync"
+
 	"github.com/rulego/rulego/api/types"
 	"github.com/rulego/rulego/components/action"
 	"github.com/rulego/rulego/components/external"
@@ -26,8 +29,6 @@ import (
 	"github.com/rulego/rulego/components/flow"
 	"github.com/rulego/rulego/components/transform"
 	"github.com/rulego/rulego/utils/reflect"
-	"plugin"
-	"sync"
 )
 
 // PluginsSymbol 插件检查点 Symbol
@@ -45,7 +46,7 @@ func init() {
 	components = append(components, external.Registry.Components()...)
 	components = append(components, flow.Registry.Components()...)
 
-	//把组件注册到默认组件库
+	// 把组件注册到默认组件库
 	for _, node := range components {
 		_ = Registry.Register(node)
 	}
@@ -53,9 +54,9 @@ func init() {
 
 // RuleComponentRegistry 组件注册器
 type RuleComponentRegistry struct {
-	//规则引擎节点组件列表
+	// 规则引擎节点组件列表
 	components map[string]types.Node
-	//插件列表
+	// 插件列表
 	plugins map[string][]types.Node
 	sync.RWMutex
 }
@@ -134,12 +135,11 @@ func (r *RuleComponentRegistry) Unregister(componentType string) error {
 func (r *RuleComponentRegistry) NewNode(nodeType string) (types.Node, error) {
 	r.RLock()
 	defer r.RUnlock()
-
-	if node, ok := r.components[nodeType]; !ok {
+	node, ok := r.components[nodeType]
+	if !ok {
 		return nil, fmt.Errorf("component not found.componentType=%s", nodeType)
-	} else {
-		return node.New(), nil
 	}
+	return node.New(), nil
 }
 
 func (r *RuleComponentRegistry) GetComponents() map[string]types.Node {
@@ -204,6 +204,6 @@ func loadPlugin(file string) (types.PluginRegistry, error) {
 		return nil, errors.New("invalid plugin")
 	}
 	// Register the plugin with the name
-	//pm.plugins[name] = plugin
+	// pm.plugins[name] = plugin
 	return plugin, nil
 }
